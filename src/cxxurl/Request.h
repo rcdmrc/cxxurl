@@ -114,6 +114,11 @@ class Request {
         DEFINE_MAP_PUSHER_GETTER(std::string, std::string, QueryParameter)
 
     public:
+        void setQueryParameter(std::map<std::string, std::string> const& query_parameters) {
+            m_QueryParameter = query_parameters;
+        }
+
+    public:
         DEFINE_METHOD(get,      "GET")
         DEFINE_METHOD(post,     "POST")
         DEFINE_METHOD(put,      "PUT")

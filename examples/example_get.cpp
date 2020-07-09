@@ -14,7 +14,6 @@ int main(int argc, char** argv){
     ostringstream contentOutput;
     Request request = RequestBuilder()
             .url("http://localhost:3000/get")
-            .queryParameter("parameter_name", "parameter_value")
             .followLocation(true)
             .contentOutput(&contentOutput)
             .build();

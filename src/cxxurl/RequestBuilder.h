@@ -12,14 +12,16 @@
 
 namespace CXXUrl {
 
+typedef std::map<std::string, std::string> StringMap;
+
 #define DEFINE_CHAIN_METHOD_1_ARGS(type, method, setter) \
-        RequestBuilder& method(type val) { \
+        RequestBuilder& method( type const& val) { \
             request.setter(val); \
             return *this; \
         }
 
 #define DEFINE_CHAIN_METHOD_2_ARGS(type1, type2, method, setter) \
-        RequestBuilder& method(type1 val1, type2 val2) { \
+        RequestBuilder& method( type1 const& val1, type2 const& val2) { \
             request.setter(val1, val2); \
             return *this; \
         }
@@ -53,6 +55,7 @@ class RequestBuilder {
         DEFINE_CHAIN_METHOD_1_ARGS(std::string, cacert, setCacert)
         DEFINE_CHAIN_METHOD_1_ARGS(bool, noBody, setNoBody)
         DEFINE_CHAIN_METHOD_1_ARGS(bool, verbose, setVerbose)
+        DEFINE_CHAIN_METHOD_1_ARGS(StringMap, queryParameter, setQueryParameter)
         DEFINE_CHAIN_METHOD_2_ARGS(CURLoption, long, curlOptionLong, setCurlOptionLong);
         DEFINE_CHAIN_METHOD_2_ARGS(CURLoption, std::string, curlOptionString, setCurlOptionString);
         DEFINE_CHAIN_METHOD_2_ARGS(std::string, std::string, queryParameter, setQueryParameter);
