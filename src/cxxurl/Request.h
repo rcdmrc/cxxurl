@@ -111,6 +111,7 @@ class Request {
         DEFINE_PROP_GETTER_SETTER(std::ostream*, HeaderOutput)
         DEFINE_MAP_PUSHER_GETTER(int, long, CurlOptionLong)
         DEFINE_MAP_PUSHER_GETTER(int, std::string, CurlOptionString)
+        DEFINE_MAP_PUSHER_GETTER(std::string, std::string, QueryParameter)
 
     public:
         DEFINE_METHOD(get,      "GET")
@@ -126,7 +127,8 @@ class Request {
 
             SET_CURL_OPT(CURLOPT_VERBOSE, m_Verbose);
 
-            SET_CURL_OPT(CURLOPT_URL, m_Url.c_str());
+            auto const url = m_Url + createQueryString(m_QueryParameter);
+            SET_CURL_OPT(CURLOPT_URL, url.c_str());
 
             method = StringUtils::toupper(method);
             if(m_NoBody || (method == "HEAD"))
@@ -239,6 +241,21 @@ class Request {
             }
             return ExecResult{rc, httpCode};
         }
+private:
+    std::string createQueryString( std::map<std::string, std::string> const &query_parameters ) {
+        std::string queryString;
+        for (auto const &parameter: query_parameters) {
+            if (queryString.empty()) {
+                queryString += "?";
+            } else {
+                queryString += "&";
+            }
+            queryString += CXXUrl::UrlEncoder::encode(parameter.first );
+            queryString += "=";
+            queryString += CXXUrl::UrlEncoder::encode(parameter.second );
+        }
+        return queryString;
+    }
 };
 
 size_t Request::writeContent(char *buffer, size_t size, size_t count, void *stream) {

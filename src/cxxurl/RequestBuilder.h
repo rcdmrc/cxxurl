@@ -55,6 +55,7 @@ class RequestBuilder {
         DEFINE_CHAIN_METHOD_1_ARGS(bool, verbose, setVerbose)
         DEFINE_CHAIN_METHOD_2_ARGS(CURLoption, long, curlOptionLong, setCurlOptionLong);
         DEFINE_CHAIN_METHOD_2_ARGS(CURLoption, std::string, curlOptionString, setCurlOptionString);
+        DEFINE_CHAIN_METHOD_2_ARGS(std::string, std::string, queryParameter, setQueryParameter);
 };
 
 }
