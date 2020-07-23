@@ -10,7 +10,7 @@
 using namespace std;
 using namespace CXXUrl;
 
-string writeKeyValues(map<std::string, std::string> const &m) {
+string buildKeyValueString(map<std::string, std::string> const &m) {
     stringstream ss;
     for (auto const &h: m) {
         ss << h.first << "= " << h.second << endl;
@@ -37,6 +37,6 @@ int main(int argc, char **argv) {
          << "----------- Header (Raw) --------" << endl
          << headerOutput.str() << endl
          << "----------- Header (key-value) --" << endl
-         << writeKeyValues(headerMapOutput)
+         << buildKeyValueString(headerMapOutput)
          << flush;
 }
