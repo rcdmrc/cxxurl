@@ -41,6 +41,7 @@ class RequestBuilder {
         DEFINE_CHAIN_METHOD_1_ARGS(bool, followLocation, setFollowLocation)
         DEFINE_CHAIN_METHOD_1_ARGS(std::ostream*, contentOutput, setContentOutput)
         DEFINE_CHAIN_METHOD_1_ARGS(std::ostream*, headerOutput, setHeaderOutput)
+        DEFINE_CHAIN_METHOD_1_ARGS(StringMap *, headerOutput, setHeaderOutputMap)
         DEFINE_CHAIN_METHOD_1_ARGS(int, maxRedirs, setMaxRedirs)
         DEFINE_CHAIN_METHOD_1_ARGS(RequestBody*, requestBody, setRequestBody)
         DEFINE_CHAIN_METHOD_1_ARGS(std::string, userAgent, setUserAgent)
