@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     map<std::string, std::string> headerMapOutput;
 
     Request request = RequestBuilder()
-            .url("http://localhost:2001/datasets/get")
+            .url("http://localhost:3000/get")
             .followLocation(true)
             .headerOutput(&headerOutput)
             .headerOutput(&headerMapOutput)
