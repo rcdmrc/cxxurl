@@ -10,23 +10,33 @@
 using namespace std;
 using namespace CXXUrl;
 
-int main(int argc, char** argv){
+string writeKeyValues(map<std::string, std::string> const &m) {
+    stringstream ss;
+    for (auto const &h: m) {
+        ss << h.first << "= " << h.second << endl;
+    }
+    return ss.str();
+}
+
+int main(int argc, char **argv) {
     ostringstream headerOutput;
     ostringstream contentOutput;
+    map<std::string, std::string> headerMapOutput;
 
     Request request = RequestBuilder()
-            .url("http://localhost:3000/get")
+            .url("http://localhost:2001/datasets/get")
             .followLocation(true)
             .headerOutput(&headerOutput)
+            .headerOutput(&headerMapOutput)
             .contentOutput(&contentOutput)
             .build();
     auto const res = request.get();
 
-    cout << "------------ Code ------------" << endl
+    cout << "----------- Code ----------------" << endl
          << res.getCode() << endl
-         << "----------- Header -----------" << endl
+         << "----------- Header (Raw) --------" << endl
          << headerOutput.str() << endl
-//         << "----------- Content ----------" << endl
-//         << contentOutput.str() << endl
+         << "----------- Header (key-value) --" << endl
+         << writeKeyValues(headerMapOutput)
          << flush;
 }

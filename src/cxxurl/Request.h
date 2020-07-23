@@ -11,6 +11,7 @@
 #include <iostream>
 #include <map>
 #include <cstdlib>
+#include <regex>
 #include "Version.h"
 #include "RequestBody.h"
 #include "SimpleForm.h"
@@ -38,7 +39,7 @@ namespace CXXUrl {
 
 #define DEFINE_METHOD(func_name, method) ExecResult func_name(){ return exec(method); }
 
-#define SET_CURL_OPT(opt,value) curl_easy_setopt(m_Curl,(CURLoption)(opt),(value))
+#define SET_CURL_OPT(opt, value) curl_easy_setopt(m_Curl,(CURLoption)(opt),(value))
 
 class ExecResult {
 public:
@@ -61,193 +62,230 @@ public:
         return getCode() == CURLE_OK;
     }
 
-    DEFINE_PROP_GETTER_SETTER(CURLcode, Code)
+DEFINE_PROP_GETTER_SETTER(CURLcode, Code)
 
-    DEFINE_PROP_GETTER_SETTER(long, HTTPCode)
+DEFINE_PROP_GETTER_SETTER(long, HTTPCode)
 };
 
 class Request {
-    public:
-        Request() :
-                m_Curl(nullptr),
-                m_FollowLocation(true),
-                m_ContentOutput(nullptr),
-                m_HeaderOutput(nullptr),
-                m_MaxRedirs(-1),
-                m_RequestBody(nullptr),
-                m_RequestHeader(nullptr),
-                m_Timeout(0L),
-                m_VerifySSL(false),
-                m_NoBody(false),
-                m_Verbose(false) {
-            m_UserAgent = "CXXUrl/" + CXX_URL_VERSION + " " + curl_version();
-        }
-        ~Request() = default;
+public:
+    typedef std::map<std::string, std::string> StringMap;
 
-    protected:
-        CURL* m_Curl;
+    Request() :
+            m_Curl(nullptr),
+            m_FollowLocation(true),
+            m_ContentOutput(nullptr),
+            m_HeaderOutput(nullptr),
+            m_MaxRedirs(-1),
+            m_RequestBody(nullptr),
+            m_RequestHeader(nullptr),
+            m_Timeout(0L),
+            m_VerifySSL(false),
+            m_NoBody(false),
+            m_Verbose(false) {
+        m_UserAgent = "CXXUrl/" + CXX_URL_VERSION + " " + curl_version();
+    }
 
-    protected:
-        static size_t writeContent(char* buffer, size_t size, size_t count, void* stream);
-        static size_t writeHeader(char* buffer, size_t size, size_t count, void* stream);
+    ~Request() = default;
 
-        DEFINE_PROP_GETTER_SETTER(std::string, Url)
-        DEFINE_PROP_GETTER_SETTER(bool, FollowLocation)
-        DEFINE_PROP_GETTER_SETTER(int, MaxRedirs)
-        DEFINE_PROP_GETTER_SETTER(RequestBody*, RequestBody)
-        DEFINE_PROP_GETTER_SETTER(std::string, UserAgent)
-        DEFINE_PROP_GETTER_SETTER(std::string, Referer)
-        DEFINE_PROP_GETTER_SETTER(std::string, ContentType)
-        DEFINE_PROP_GETTER_SETTER(RequestHeader*, RequestHeader)
-        DEFINE_PROP_GETTER_SETTER(long, Timeout)
-        DEFINE_PROP_GETTER_SETTER(std::string, Proxy)
-        DEFINE_PROP_GETTER_SETTER(std::string, CookieImportFile)
-        DEFINE_PROP_GETTER_SETTER(std::string, CookieExportFile)
-        DEFINE_PROP_GETTER_SETTER(bool, VerifySSL)
-        DEFINE_PROP_GETTER_SETTER(std::string, Cacert)
-        DEFINE_PROP_GETTER_SETTER(bool, NoBody)
-        DEFINE_PROP_GETTER_SETTER(bool, Verbose)
-        DEFINE_PROP_GETTER_SETTER(std::ostream*, ContentOutput)
-        DEFINE_PROP_GETTER_SETTER(std::ostream*, HeaderOutput)
-        DEFINE_MAP_PUSHER_GETTER(int, long, CurlOptionLong)
-        DEFINE_MAP_PUSHER_GETTER(int, std::string, CurlOptionString)
-        DEFINE_MAP_PUSHER_GETTER(std::string, std::string, QueryParameter)
+protected:
+    CURL *m_Curl;
 
-    public:
-        void setQueryParameter(std::map<std::string, std::string> const& query_parameters) {
-            m_QueryParameter = query_parameters;
-        }
+protected:
+    static size_t writeContent(char *buffer, size_t size, size_t count, void *stream);
 
-    public:
-        DEFINE_METHOD(get,      "GET")
-        DEFINE_METHOD(post,     "POST")
-        DEFINE_METHOD(put,      "PUT")
-        DEFINE_METHOD(head,     "HEAD")
-        DEFINE_METHOD(options,  "OPTIONS")
-        DEFINE_METHOD(del,      "DELETE")
-        DEFINE_METHOD(connect,  "CONNECT")
+    static size_t writeHeader(char *buffer, size_t size, size_t count, void *stream);
 
-        ExecResult exec( std::string method="") {
-            m_Curl = curl_easy_init();
+DEFINE_PROP_GETTER_SETTER(std::string, Url)
 
-            SET_CURL_OPT(CURLOPT_VERBOSE, m_Verbose);
+DEFINE_PROP_GETTER_SETTER(bool, FollowLocation)
 
-            auto const url = m_Url + createQueryString(m_QueryParameter);
-            SET_CURL_OPT(CURLOPT_URL, url.c_str());
+DEFINE_PROP_GETTER_SETTER(int, MaxRedirs)
 
-            method = StringUtils::toupper(method);
-            if(m_NoBody || (method == "HEAD"))
-                SET_CURL_OPT(CURLOPT_NOBODY, 1);
-            if(method!="HEAD")
-                SET_CURL_OPT(CURLOPT_CUSTOMREQUEST, method.c_str());
+DEFINE_PROP_GETTER_SETTER(RequestBody*, RequestBody)
 
-            if (m_RequestBody != nullptr) {
-                switch (m_RequestBody->m_Type){
-                    case RequestBody::X_WWW_FORM_URLENCODED: {
-                        auto *simpleForm = (SimpleForm *) m_RequestBody;
-                        SET_CURL_OPT(CURLOPT_POSTFIELDS, simpleForm->getData());
-                        SET_CURL_OPT(CURLOPT_POSTFIELDSIZE, simpleForm->length());
-                        break;
-                    }
-                    case RequestBody::MULTIPART_FORM_DATA: {
-                        auto *multipartForm = (MultipartForm *) m_RequestBody;
-                        SET_CURL_OPT(CURLOPT_HTTPPOST, multipartForm->getData());
-                        break;
-                    }
-                    case RequestBody::RAW_REQUEST_BODY: {
-                        auto *rawForm = (RawRequestBody *) m_RequestBody;
-                        SET_CURL_OPT(CURLOPT_POSTFIELDS, rawForm->getData());
-                        SET_CURL_OPT(CURLOPT_POSTFIELDSIZE, rawForm->length());
-                        break;
-                    }
-                    default:
-                        std::cerr << "form type unknown" << std::endl << std::flush;
-                        break;
+DEFINE_PROP_GETTER_SETTER(std::string, UserAgent)
+
+DEFINE_PROP_GETTER_SETTER(std::string, Referer)
+
+DEFINE_PROP_GETTER_SETTER(std::string, ContentType)
+
+DEFINE_PROP_GETTER_SETTER(RequestHeader*, RequestHeader)
+
+DEFINE_PROP_GETTER_SETTER(long, Timeout)
+
+DEFINE_PROP_GETTER_SETTER(std::string, Proxy)
+
+DEFINE_PROP_GETTER_SETTER(std::string, CookieImportFile)
+
+DEFINE_PROP_GETTER_SETTER(std::string, CookieExportFile)
+
+DEFINE_PROP_GETTER_SETTER(bool, VerifySSL)
+
+DEFINE_PROP_GETTER_SETTER(std::string, Cacert)
+
+DEFINE_PROP_GETTER_SETTER(bool, NoBody)
+
+DEFINE_PROP_GETTER_SETTER(bool, Verbose)
+
+DEFINE_PROP_GETTER_SETTER(std::ostream*, ContentOutput)
+
+DEFINE_PROP_GETTER_SETTER(std::ostream*, HeaderOutput)
+
+DEFINE_PROP_GETTER_SETTER(StringMap *, HeaderOutputMap)
+
+DEFINE_MAP_PUSHER_GETTER(int, long, CurlOptionLong)
+
+DEFINE_MAP_PUSHER_GETTER(int, std::string, CurlOptionString)
+
+DEFINE_MAP_PUSHER_GETTER(std::string, std::string, QueryParameter)
+
+public:
+    void setQueryParameter(std::map<std::string, std::string> const &query_parameters) {
+        m_QueryParameter = query_parameters;
+    }
+
+public:
+    DEFINE_METHOD(get, "GET")
+
+    DEFINE_METHOD(post, "POST")
+
+    DEFINE_METHOD(put, "PUT")
+
+    DEFINE_METHOD(head, "HEAD")
+
+    DEFINE_METHOD(options, "OPTIONS")
+
+    DEFINE_METHOD(del, "DELETE")
+
+    DEFINE_METHOD(connect, "CONNECT")
+
+    ExecResult exec(std::string method = "") {
+        m_Curl = curl_easy_init();
+
+        SET_CURL_OPT(CURLOPT_VERBOSE, m_Verbose);
+
+        auto const url = m_Url + createQueryString(m_QueryParameter);
+        SET_CURL_OPT(CURLOPT_URL, url.c_str());
+
+        method = StringUtils::toupper(method);
+        if (m_NoBody || (method == "HEAD"))
+            SET_CURL_OPT(CURLOPT_NOBODY, 1);
+        if (method != "HEAD")
+            SET_CURL_OPT(CURLOPT_CUSTOMREQUEST, method.c_str());
+
+        if (m_RequestBody != nullptr) {
+            switch (m_RequestBody->m_Type) {
+                case RequestBody::X_WWW_FORM_URLENCODED: {
+                    auto *simpleForm = (SimpleForm *) m_RequestBody;
+                    SET_CURL_OPT(CURLOPT_POSTFIELDS, simpleForm->getData());
+                    SET_CURL_OPT(CURLOPT_POSTFIELDSIZE, simpleForm->length());
+                    break;
                 }
-            }
-
-
-
-            SET_CURL_OPT(CURLOPT_FOLLOWLOCATION, m_FollowLocation);
-            SET_CURL_OPT(CURLOPT_USERAGENT, m_UserAgent.c_str());
-
-            if(!m_Referer.empty()){
-                SET_CURL_OPT(CURLOPT_REFERER, m_Referer.c_str());
-            }
-
-            bool need_reset_header = false;
-            if(!m_ContentType.empty()){
-                if(m_RequestHeader==nullptr){
-                    m_RequestHeader = new RequestHeader();
-                    need_reset_header = true;
+                case RequestBody::MULTIPART_FORM_DATA: {
+                    auto *multipartForm = (MultipartForm *) m_RequestBody;
+                    SET_CURL_OPT(CURLOPT_HTTPPOST, multipartForm->getData());
+                    break;
                 }
-                m_RequestHeader->add("Content-Type", m_ContentType);
+                case RequestBody::RAW_REQUEST_BODY: {
+                    auto *rawForm = (RawRequestBody *) m_RequestBody;
+                    SET_CURL_OPT(CURLOPT_POSTFIELDS, rawForm->getData());
+                    SET_CURL_OPT(CURLOPT_POSTFIELDSIZE, rawForm->length());
+                    break;
+                }
+                default:
+                    std::cerr << "form type unknown" << std::endl << std::flush;
+                    break;
             }
-
-            if(m_RequestHeader!=nullptr){
-                SET_CURL_OPT(CURLOPT_HTTPHEADER, m_RequestHeader->getHeaders());
-            }
-
-            if(m_Timeout>0L){
-                SET_CURL_OPT(CURLOPT_TIMEOUT_MS, m_Timeout);
-            }
-
-
-            if(!m_Proxy.empty()){
-                SET_CURL_OPT(CURLOPT_PROXY, m_Proxy.c_str());
-            }else{
-                char* envProxy = getenv("http_proxy");
-                if(envProxy==nullptr) envProxy = getenv("HTTP_PROXY");
-                if(envProxy!=nullptr) SET_CURL_OPT(CURLOPT_PROXY, envProxy);
-            }
-
-            if(!m_CookieImportFile.empty()){
-                SET_CURL_OPT(CURLOPT_COOKIEFILE, m_CookieImportFile.c_str());
-            }
-            if(!m_CookieExportFile.empty()){
-                SET_CURL_OPT(CURLOPT_COOKIEJAR, m_CookieExportFile.c_str());
-            }
-
-            if(m_VerifySSL && !m_Cacert.empty()){
-                SET_CURL_OPT(CURLOPT_SSL_VERIFYPEER, 1);
-                SET_CURL_OPT(CURLOPT_SSL_VERIFYHOST, 1);
-                SET_CURL_OPT(CURLOPT_CAINFO, m_Cacert.c_str());
-            }else{
-                SET_CURL_OPT(CURLOPT_SSL_VERIFYPEER, 0);
-                SET_CURL_OPT(CURLOPT_SSL_VERIFYHOST, 0);
-            }
-
-            if (m_MaxRedirs != -1)
-                SET_CURL_OPT(CURLOPT_MAXREDIRS, m_MaxRedirs);
-
-            SET_CURL_OPT(CURLOPT_WRITEFUNCTION, writeContent);
-            SET_CURL_OPT(CURLOPT_WRITEDATA, m_ContentOutput);
-            SET_CURL_OPT(CURLOPT_HEADERFUNCTION, writeHeader);
-            SET_CURL_OPT(CURLOPT_HEADERDATA, m_HeaderOutput);
-
-            for (auto i : m_CurlOptionLong) {
-                SET_CURL_OPT(i.first, i.second);
-            }
-
-            for (auto const& i : m_CurlOptionString) {
-                SET_CURL_OPT(i.first, i.second.c_str());
-            }
-
-            auto const rc = curl_easy_perform(m_Curl);
-            long httpCode(0);
-            if ( rc == CURLE_OK ) {
-              curl_easy_getinfo(m_Curl, CURLINFO_RESPONSE_CODE, &httpCode);
-            }
-            curl_easy_cleanup(m_Curl);
-
-            if (need_reset_header) {
-                delete m_RequestHeader;
-                m_RequestHeader = nullptr;
-            }
-            return ExecResult{rc, httpCode};
         }
+
+
+        SET_CURL_OPT(CURLOPT_FOLLOWLOCATION, m_FollowLocation);
+        SET_CURL_OPT(CURLOPT_USERAGENT, m_UserAgent.c_str());
+
+        if (!m_Referer.empty()) {
+            SET_CURL_OPT(CURLOPT_REFERER, m_Referer.c_str());
+        }
+
+        bool need_reset_header = false;
+        if (!m_ContentType.empty()) {
+            if (m_RequestHeader == nullptr) {
+                m_RequestHeader = new RequestHeader();
+                need_reset_header = true;
+            }
+            m_RequestHeader->add("Content-Type", m_ContentType);
+        }
+
+        if (m_RequestHeader != nullptr) {
+            SET_CURL_OPT(CURLOPT_HTTPHEADER, m_RequestHeader->getHeaders());
+        }
+
+        if (m_Timeout > 0L) {
+            SET_CURL_OPT(CURLOPT_TIMEOUT_MS, m_Timeout);
+        }
+
+
+        if (!m_Proxy.empty()) {
+            SET_CURL_OPT(CURLOPT_PROXY, m_Proxy.c_str());
+        } else {
+            char *envProxy = getenv("http_proxy");
+            if (envProxy == nullptr) envProxy = getenv("HTTP_PROXY");
+            if (envProxy != nullptr) SET_CURL_OPT(CURLOPT_PROXY, envProxy);
+        }
+
+        if (!m_CookieImportFile.empty()) {
+            SET_CURL_OPT(CURLOPT_COOKIEFILE, m_CookieImportFile.c_str());
+        }
+        if (!m_CookieExportFile.empty()) {
+            SET_CURL_OPT(CURLOPT_COOKIEJAR, m_CookieExportFile.c_str());
+        }
+
+        if (m_VerifySSL && !m_Cacert.empty()) {
+            SET_CURL_OPT(CURLOPT_SSL_VERIFYPEER, 1);
+            SET_CURL_OPT(CURLOPT_SSL_VERIFYHOST, 1);
+            SET_CURL_OPT(CURLOPT_CAINFO, m_Cacert.c_str());
+        } else {
+            SET_CURL_OPT(CURLOPT_SSL_VERIFYPEER, 0);
+            SET_CURL_OPT(CURLOPT_SSL_VERIFYHOST, 0);
+        }
+
+        if (m_MaxRedirs != -1)
+            SET_CURL_OPT(CURLOPT_MAXREDIRS, m_MaxRedirs);
+
+        SET_CURL_OPT(CURLOPT_WRITEFUNCTION, writeContent);
+        SET_CURL_OPT(CURLOPT_WRITEDATA, m_ContentOutput);
+        SET_CURL_OPT(CURLOPT_HEADERFUNCTION, writeHeader);
+        std::stringstream headerOutputBuffer;
+        if (m_HeaderOutput != nullptr || m_HeaderOutputMap != nullptr) {
+            SET_CURL_OPT(CURLOPT_HEADERDATA, &headerOutputBuffer);
+        }
+
+        for (auto i : m_CurlOptionLong) {
+            SET_CURL_OPT(i.first, i.second);
+        }
+
+        for (auto const &i : m_CurlOptionString) {
+            SET_CURL_OPT(i.first, i.second.c_str());
+        }
+
+        auto const rc = curl_easy_perform(m_Curl);
+        long httpCode(0);
+        if (rc == CURLE_OK) {
+            curl_easy_getinfo(m_Curl, CURLINFO_RESPONSE_CODE, &httpCode);
+        }
+        curl_easy_cleanup(m_Curl);
+
+        parseResponseHeader(m_HeaderOutputMap, m_HeaderOutput, headerOutputBuffer);
+
+        if (need_reset_header) {
+            delete m_RequestHeader;
+            m_RequestHeader = nullptr;
+        }
+        return ExecResult{rc, httpCode};
+    }
+
 private:
-    std::string createQueryString( std::map<std::string, std::string> const &query_parameters ) {
+    static std::string createQueryString(std::map<std::string, std::string> const &query_parameters) {
         std::string queryString;
         for (auto const &parameter: query_parameters) {
             if (queryString.empty()) {
@@ -255,22 +293,50 @@ private:
             } else {
                 queryString += "&";
             }
-            queryString += CXXUrl::UrlEncoder::encode(parameter.first );
+            queryString += CXXUrl::UrlEncoder::encode(parameter.first);
             queryString += "=";
-            queryString += CXXUrl::UrlEncoder::encode(parameter.second );
+            queryString += CXXUrl::UrlEncoder::encode(parameter.second);
         }
         return queryString;
+    }
+
+    /**
+     * Reads headers into the header_map and/or header_stream. Dealing with both cases in the same method saves us
+     * from having to read the response header more than once.
+     * @param header_map the caller's key-value storage for response headers.
+     * @param header_stream the caller's stream for response headers.
+     * @param in_stream the response headers
+     */
+    static void parseResponseHeader(StringMap *header_map, std::ostream *header_stream, std::iostream &in_stream) {
+        if (header_map == nullptr && header_stream == nullptr) {
+            return;
+        }
+        std::string line;
+        std::smatch match;
+        std::regex const keyValueRegex(R"(^(.+):\s(.+)\r?$)");
+        while (std::getline(in_stream, line)) {
+            if (std::regex_match(line, match, keyValueRegex)) {
+                auto const key = StringUtils::tolower(match[1].str());
+                header_map->insert(std::make_pair(key, match[2].str()));
+            }
+            if (header_stream) {
+                (*header_stream) << line;
+                if (in_stream.peek() != EOF) {
+                    (*header_stream) << '\n';
+                }
+            }
+        }
     }
 };
 
 size_t Request::writeContent(char *buffer, size_t size, size_t count, void *stream) {
-    if(stream!= nullptr)
+    if (stream != nullptr)
         ((std::ostream *) stream)->write(buffer, size * count);
     return size * count;
 }
 
 size_t Request::writeHeader(char *buffer, size_t size, size_t count, void *stream) {
-    if(stream!= nullptr)
+    if (stream != nullptr)
         ((std::ostream *) stream)->write(buffer, size * count);
     return size * count;
 }
