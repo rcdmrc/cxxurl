@@ -93,9 +93,9 @@ protected:
     CURL *m_Curl;
 
 protected:
-    static size_t writeContent(char *buffer, size_t size, size_t count, void *stream);
+    inline static size_t writeContent(char *buffer, size_t size, size_t count, void *stream);
 
-    static size_t writeHeader(char *buffer, size_t size, size_t count, void *stream);
+    inline static size_t writeHeader(char *buffer, size_t size, size_t count, void *stream);
 
 DEFINE_PROP_GETTER_SETTER(std::string, Url)
 

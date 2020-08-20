@@ -18,8 +18,8 @@ class UrlEncoder {
         static inline unsigned char FromHex(unsigned char x);
 
     public:
-        static std::string encode(const std::string& str);
-        static std::string decode(const std::string& str);
+        static inline std::string encode(const std::string& str);
+        static inline std::string decode(const std::string& str);
 
 };
 
