@@ -75,15 +75,15 @@ public:
     Request() :
             m_Curl(nullptr),
             m_FollowLocation(true),
-            m_ContentOutput(nullptr),
-            m_HeaderOutput(nullptr),
             m_MaxRedirs(-1),
             m_RequestBody(nullptr),
             m_RequestHeader(nullptr),
             m_Timeout(0L),
             m_VerifySSL(false),
             m_NoBody(false),
-            m_Verbose(false) {
+            m_Verbose(false),
+            m_ContentOutput(nullptr),
+            m_HeaderOutput(nullptr) {
         m_UserAgent = "CXXUrl/" + CXX_URL_VERSION + " " + curl_version();
     }
 
