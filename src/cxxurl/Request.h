@@ -9,6 +9,7 @@
 #include <curl/curl.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <cstdlib>
 #include <regex>
