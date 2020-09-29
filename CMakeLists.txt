@@ -13,6 +13,12 @@ else()
     message(FATAL_ERROR  "CURL_NOT_FOUND")
 endif()
 
+if(MSVC)
+    add_compile_options(/W4 /WX)
+else()
+    add_compile_options(-Wall -Wextra -pedantic)
+endif()
+
 include_directories(src thirdparty/json ${CURL_INCLUDE_DIR})
 
 # Add all examples target

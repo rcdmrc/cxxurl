@@ -58,7 +58,7 @@ class ResponseHeader : public std::map<std::string, std::vector<std::string>>{
             code = std::stoi(tokens[1]);
             status = tokens[2];
 
-            for (int i = 1; i < lines.size(); i++) {
+            for (size_t i = 1; i < lines.size(); i++) {
                 tokens = StringUtils::explode(":", lines[i], 2);
                 if (tokens.size() != 2) continue;
                 std::string key = StringUtils::trim(tokens[0]);
