@@ -12,7 +12,8 @@ class FormItem{
     public:
         enum ITEM_TYPE{
             KEY_VALUE = 0,
-            FILE
+            FILE,
+            MEMORY_BUFFER
         };
 
         FormItem() : type(KEY_VALUE) {};
@@ -25,6 +26,8 @@ class FormItem{
 
         std::string filePath;
         std::string fileName;
+
+        std::vector<unsigned char> buffer;
 };
 
 #endif //CXXURL_FORMITEM_H

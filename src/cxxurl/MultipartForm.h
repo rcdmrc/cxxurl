@@ -29,7 +29,7 @@ class MultipartForm : public RequestBody {
         }
 
     public:
-        MultipartForm &add(std::string key, std::string value) {
+        MultipartForm &add(const std::string& key, const std::string& value) {
             FormItem item;
             item.type = FormItem::KEY_VALUE;
             item.key = key;
@@ -38,12 +38,21 @@ class MultipartForm : public RequestBody {
             return *this;
         }
 
-        MultipartForm &addFile(std::string key, std::string filePath, std::string fileName="") {
+        MultipartForm &addFile(const std::string& key, const std::string& filePath, const std::string& fileName="") {
             FormItem item;
             item.type = FormItem::FILE;
             item.key = key;
             item.filePath = filePath;
             item.fileName = fileName;
+            m_FormDataList.push_back(item);
+            return *this;
+        }
+
+        MultipartForm &addMemoryFile(const std::string& key, const std::vector<unsigned char>& fileContent) {
+            FormItem item;
+            item.type = FormItem::MEMORY_BUFFER;
+            item.key = key;
+            item.buffer = fileContent;
             m_FormDataList.push_back(item);
             return *this;
         }
@@ -80,6 +89,15 @@ class MultipartForm : public RequestBody {
                                          CURLFORM_FILENAME, i.fileName.c_str(),
                                          CURLFORM_END);
                         }
+                        break;
+                    case FormItem::ITEM_TYPE::MEMORY_BUFFER:
+                        curl_formadd(&m_FormHeadPtr,
+                                     &m_FormTailPtr,
+                                     CURLFORM_COPYNAME, i.key.c_str(),
+                                     CURLFORM_BUFFER, i.key.c_str(),
+                                     CURLFORM_BUFFERPTR, i.buffer.data(),
+                                     CURLFORM_BUFFERLENGTH, (long)i.buffer.size(),
+                                     CURLFORM_END);
                         break;
                 }
             }
